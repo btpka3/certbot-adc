@@ -1,88 +1,182 @@
-# certbot-auto-dns-challenge
+# certbot-adc
+
+Certbot-**A**uto-**D**ns-**C**hallenge using [certbot](https://certbot.eff.org/)'s
+[`--manual-auth-hook`](https://certbot.eff.org/docs/using.html#manual)
+and DNS provider's API to add DNS TXT record, get https cert automatically 
+from [Let's Encrypt](https://letsencrypt.org/). 
+There's no need for a web server or public internet IP address. 
+Extremely useful for intranet only https servers.
+
+<!--
+## Why this tool?
+
+ACME defined several Identifier Validation Challenges:
+
+- HTTP Challenge: 
+    Requires public IP address and a http server.
+
+- TLS with Server Name Indication (TLS SNI) Challenge. 
+    Requires public IP address and a special https server.
+
+- DNS Challenge:
+    Requires no public IP address, can be used to require a https cert used in intranet only.
+    Can be verified by manual or by shell hooks (with DNS provider's API).
+
+- Out-of-Band Challenge:
+    Requires human operations.
+-->
+
+## Supported DNS providers
+
+This tool uses shell hooks to add a TXT DNS record to pass DNS Challenge.
+
+-  [aliyun.com](https://wanwang.aliyun.com/domain/dns/)
 
 
+
+
+# how to use
+
+## setup
 
 ```bash
-pip install aliyun-python-sdk-core
-pip install aliyun-python-sdk-alidns
+# register a domain, can get the API key/secrete for shell hooks.
 
-docker run -it --rm --entrypoint "" \
-    -v /data0/store/soft/certbot/docker/etc/letsencrypt:/etc/letsencrypt \
-    -v /data0/store/soft/certbot/docker/var/lib/letsencrypt:/var/lib/letsencrypt \
-    -v /data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge:/data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge \
-    certbot/certbot \
-    sh
-    certbot \
-        -d test13.kingsilk.xyz \
-        --manual \
-        --preferred-challenges dns \
-        certonly
+# prepare enviroment
+mkdir -p /data0/store/soft/certbot/docker
+mkdir -p /data0/store/soft/certbot/docker/etc/letsencrypt
+mkdir -p /data0/store/soft/certbot/docker/var/lib/letsencrypt
+mkdir -p /data0/store/soft/certbot/docker/var/log/letsencrypt
 
+# create cerbot-adc config file
+cat > /data0/store/soft/certbot/docker/etc/letsencrypt/certbot_adc.yaml <<EOF
+providers:
+  - name:             kingsilk
+    type:             aliyun
+    accessKeyId:      xxxxxxxdxxxxxxxx
+    accessKeySecret:  yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    regionId:         cn-hangzhou
+    domains:
+      - test12.kingsilk.xyz
+      - test13.kingsilk.xyz
+      - test14.kingsilk.xyz
+EOF
+
+# re-create docker container.
+docker stop my-certbot-adc
+docker rm my-certbot-adc
 docker \
     create  \
+    --name my-certbot-adc \
     --entrypoint "/bin/sh" \
     -t \
-    --name my-certbot \
     -v /data0/store/soft/certbot/docker/etc/letsencrypt:/etc/letsencrypt \
     -v /data0/store/soft/certbot/docker/var/lib/letsencrypt:/var/lib/letsencrypt \
-    -v /data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge:/data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge \
-    certbot/certbot
+    -v /data0/store/soft/certbot/docker/var/log/letsencrypt:/var/log/letsencrypt \
+    btpka3/certbot-adc
 
+# start docker container
+docker start my-certbot-adc
 
-docker run -it --rm --entrypoint "" \
-    -v /data0/store/soft/certbot/docker/etc/letsencrypt:/etc/letsencrypt \
-    -v /data0/store/soft/certbot/docker/var/lib/letsencrypt:/var/lib/letsencrypt \
-    -v /data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge:/data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge \
-    certbot/certbot \
-    certbot \
-        -n \
-        -d test12.kingsilk.xyz \
-        --manual-public-ip-logging-ok \
-        --manual \
-        --manual-auth-hook /data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge/manual-auth-hook.py \
-        --manual-cleanup-hook /data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge/manual-cleanup-hook.py \
-        --preferred-challenges dns \
-        certonly
-```
-
-
-
-# 计划
-
-```bash
-
-# 第一次初始化，需要设置邮箱。
-docker exec my-cdac certbot \
+# init certbot account (Only once)
+docker exec my-certbot-adc certbot \
     register \
     -n \
     --email admin@kingsilk.net \
     --eff-email \
     --agree-tos
 
-# 手动执行
-docker exec my-cdac certbot \
+# get certs (Only once for each domain )
+# For testing, using `--dry-run` option
+docker exec my-certbot-adc certbot \
     certonly \
+    -n \
     --manual \
     --manual-public-ip-logging-ok \
-    --manual-auth-hook /data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge/manual-auth-hook.py \
-    --manual-cleanup-hook /data0/work/git-repo/github/btpka3/certbot-auto-dns-challenge/manual-cleanup-hook.py \
+    --manual-auth-hook /usr/local/bin/certbot-adc-manual-auth-hook \
     --preferred-challenges dns \
-    -d kingsilk.club
+    -d test12.kingsilk.xyz
 
-# 定时任务
-docker stop my-cdac
-docker start my-cdac
-docker exec my-cdac 
+# renew
+# For testing, using `--dry-run` option
+docker exec my-certbot-adc certbot \
+    renew \
+    -n
 
+# stop docker container
+docker stop my-certbot-adc
 ```
+
+### cron renew
+
+
+1. create cron shell `certbot-adc-cron.sh`. 
+ 
+    ```sh
+    #!/bin/bash
+    docker start my-certbot-adc
+    docker exec my-certbot-adc certbot renew -n
+    docker stop my-certbot-adc
+    ```
+
+1. setup cron jobs
+
+    ```sh
+    crontab -e 
+    # min   hour    day     month   weekday command
+      0     2       *       *       *       /path/to/certbot-adc-cron.sh
+    ```
+
+
+## developing
+
+```bash
+# delete and rebuild locate docker images 
+docker stop my-certbot-adc
+docker rm my-certbot-adc
+docker rmi btpka3/certbot-adc:latest
+docker build -t btpka3/certbot-adc .
+
+
+# same as user's setup step, but using `--dry-run` to test shell hook and renew
+
+docker exec my-certbot-adc certbot \
+    certonly \
+    --dryrun \
+    -n \
+    --manual \
+    --manual-public-ip-logging-ok \
+    --manual-auth-hook /usr/local/bin/certbot-adc-manual-auth-hook \
+    --preferred-challenges dns \
+    -d test12.kingsilk.xyz
+
+docker exec my-certbot-adc certbot \
+    renew \
+    --dryrun \
+    -n
+```
+
 # 参考
 
-- dev
+- python
     - [python - pem](https://pem.readthedocs.io/en/stable/api.html#pem-objects)
     - [python - rsa](https://stuvel.eu/rsa)
-- [certbot hooks](https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
-- [阿里云 python SDK - 快速开始](https://help.aliyun.com/document_detail/53090.html)
-- [PyPI - aliyun-python-sdk-alidns](https://pypi.python.org/pypi/aliyun-python-sdk-alidns)
-- [Github - aliyun-python-sdk-alidns](https://github.com/aliyun/aliyun-openapi-python-sdk/tree/master/aliyun-python-sdk-alidns)
-- [阿里云-云解析-API](https://help.aliyun.com/document_detail/29740.html )
-- [腾讯-云解析-API](https://cloud.tencent.com/document/api/302/8519)
+- Let's Encrypt 
+    - [ACME Protocol](https://ietf-wg-acme.github.io/acme/draft-ietf-acme-acme.html)
+    - [FAQ: Will Let's Encrypt issue wildcard certificates?](https://certbot.eff.org/faq/#will-let-s-encrypt-issue-wildcard-certificates)
+    - [FAQ: What are the current rate limits?](https://certbot.eff.org/faq/#what-are-the-current-rate-limits)
+    - [certbot@docker hub](https://hub.docker.com/r/certbot/certbot/)
+    - [certbot hooks](https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
+- DNS providers
+    - aliyun
+        - [阿里云-云解析-API](https://help.aliyun.com/document_detail/29740.html)
+        - [aliyun python SDK - quick start](https://help.aliyun.com/document_detail/53090.html)
+        - [PyPI - aliyun-python-sdk-alidns](https://pypi.python.org/pypi/aliyun-python-sdk-alidns)
+        - [Github - aliyun-python-sdk-alidns](https://github.com/aliyun/aliyun-openapi-python-sdk/tree/master/aliyun-python-sdk-alidns)
+    - tencent cloud
+        - [腾讯-云解析-API](https://cloud.tencent.com/document/api/302/8516)
+    - DNSPod
+        - [DNSPod用户API文档](https://www.dnspod.cn/docs/index.html)
+    - GoDaddy
+        - [API](https://developer.godaddy.com/doc)
+    

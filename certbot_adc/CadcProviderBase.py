@@ -2,6 +2,8 @@
 
 from abc import abstractmethod
 
+
 class CadcProviderBase:
     @abstractmethod
-    def updateDns01(self, domain: str, token: str) -> None: ...
+    def update_dns01(self, domain, token):
+        pass
