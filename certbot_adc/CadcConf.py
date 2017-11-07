@@ -4,6 +4,9 @@
 import yaml
 from validate_email import validate_email
 import os
+import logging
+
+logger = logging.getLogger("certbot_adc.CadcConf")
 
 
 class CadcConf:
@@ -18,11 +21,42 @@ class CadcConf:
     conf_file = None
     conf_dict = None
 
-    def __init__(self, conf_file):
+    def __init__(self, conf_file=None):
 
-        self.conf_file = conf_file
+        if conf_file:
+            assert os.path.isfile(conf_file), \
+                "config file '" + conf_file + "' is not existed."
+            self.conf_file = conf_file
+        else:
+            self.conf_file = self.find_conf_file()
+
         self.conf_dict = yaml.load(open(self.conf_file, "r").read())
         self.check()
+
+    def find_conf_file(self):
+        configs = [
+            os.environ.get("CERTBOT_ADC_YAML"),
+            os.getcwd() + os.sep + "certbot_adc.yaml",
+            os.getcwd() + os.sep + "config" + os.sep + "certbot_adc.yaml",
+            os.path.expanduser("~") + os.sep + ".certbot_cadc" + os.sep + "certbot_adc.yaml",
+            os.sep + "etc" + os.sep + "certbot_adc" + os.sep + "certbot_adc.yaml"
+        ]
+        config = None
+        for config_file in configs:
+            if config_file and os.path.isfile(config_file):
+                config = config_file
+                break
+
+        assert config, """
+        Could not find certbot_adc.yaml in  
+        1. Environment variable 'CERTBOT_ADC_YAML'
+        2. $WORKING_DIR/certbot_adc.yaml
+        3. $WORKING_DIR/config/certbot_adc.yaml
+        4. ~/.certbot_cadc/certbot_adc.yaml
+        5. /etc/certbot_cadc/certbot_adc.yaml
+        """
+        logger.info("Using config file '" + config + "'")
+        return config
 
     def __check_provider_domains(self, provider_idx, provider, domains):
         for domain_idx, domain in enumerate(domains):

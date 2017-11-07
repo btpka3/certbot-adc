@@ -55,9 +55,9 @@ providers:
     accessKeySecret:  yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     regionId:         cn-hangzhou
     domains:
-      - test12.kingsilk.xyz
-      - test13.kingsilk.xyz
-      - test14.kingsilk.xyz
+      - kingsilk.xyz
+      - kingsilk.link
+
 EOF
 
 # re-create docker container.
@@ -160,13 +160,11 @@ docker exec my-certbot-adc certbot \
 
 # References
 
-- python
-    - [python - pem](https://pem.readthedocs.io/en/stable/api.html#pem-objects)
-    - [python - rsa](https://stuvel.eu/rsa)
 - Let's Encrypt 
     - [ACME Protocol](https://ietf-wg-acme.github.io/acme/draft-ietf-acme-acme.html)
     - [FAQ: Will Let's Encrypt issue wildcard certificates?](https://certbot.eff.org/faq/#will-let-s-encrypt-issue-wildcard-certificates)
     - [Rate Limits](https://letsencrypt.org/docs/rate-limits/)
+    - [Revoking certificates](https://letsencrypt.org/docs/revoking/)
     - [certbot@docker hub](https://hub.docker.com/r/certbot/certbot/)
     - [certbot hooks](https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
 - DNS providers

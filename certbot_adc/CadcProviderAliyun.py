@@ -108,16 +108,12 @@ class CadcProviderAliyun(CadcProviderBase):
 
         if record_id:
             rec_resp = self.get_txt_record(record_id)
-            logger.error(rec_resp)
-            logger.error(type(rec_resp))
-            logger.error(rec_resp.get('Value'))
-            logger.error(token)
 
             if rec_resp is not None and type(rec_resp) == dict and rec_resp.get('Value') != token:
                 self.update_txt_record(record_id, sub_domain, token)
-                logger.info("==================updating existed DNS TXT record.")
+                logger.info("Updating existed DNS TXT record.")
             else:
-                logger.error("==================same token already been configured. skip.")
+                logger.error("Same token already been configured. Skip.")
         else:
             self.add_txt_record(main_domain, sub_domain, token)
-            logger.info("==================add new DNS TXT record")
+            logger.info("DNS TXT record added.")

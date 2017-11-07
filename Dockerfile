@@ -1,7 +1,7 @@
 FROM certbot/certbot:v0.19.0
 
 COPY . /tmp/certbot_adc
-ENV CERTBOT-ADC_YAML=/etc/letsencrypt/certbot_adc.yaml
+ENV CERTBOT_ADC_YAML=/etc/letsencrypt/certbot_adc.yaml
 
 RUN \
     apk add --no-cache --virtual .build-deps \

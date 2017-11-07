@@ -14,33 +14,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("certbot_adc.certbot-adc-manual-auth-hook")
 
-
-def get_cadc_conf_file():
-    configs = [
-        os.environ.get("CERTBOT-ADC_YAML"),
-        os.getcwd() + os.sep + "certbot_adc.yaml",
-        os.getcwd() + os.sep + "config/certbot_adc.yaml",
-        os.path.expanduser("~") + os.sep + "/.certbot_cadc/certbot_adc.yaml",
-        "/etc/certbot_adc/certbot_adc.yaml"
-    ]
-    config = None
-    for config_file in configs:
-        if config_file and os.path.isfile(config_file):
-            config = config_file
-            break
-
-    assert config, """
-    Could not find certbot_adc.yaml in  
-    1. Environment variable 'CERTBOT-ADC_YAML'
-    2. $WORKING_DIR/certbot_adc.yaml
-    3. $WORKING_DIR/config/certbot_adc.yaml
-    4. ~/.certbot_cadc/certbot_adc.yaml
-    5. /etc/certbot_cadc/certbot_adc.yaml
-    """
-    logger.info("Using config file '" + config + "'")
-    return config
-
-
 domain = os.environ.get('CERTBOT_DOMAIN')
 assert domain, "Environment variable 'CERTBOT_DOMAIN' is not set."
 
@@ -48,8 +21,7 @@ token = os.environ.get('CERTBOT_VALIDATION')
 assert token, "Environment variable 'CERTBOT_VALIDATION' is not set."
 logger.info("Setup DNS challenge for '" + domain + "' with token '" + token + "'")
 
-config = get_cadc_conf_file()
-fac = CadcProviders.CadcProviders(config)
+fac = CadcProviders.CadcProviders()
 fac.update_dns01(domain, token)
 
 u"""

@@ -18,6 +18,9 @@ setup(
         "PyYAML>=3.12",
         "validate_email>=1.3"
     ],
-    scripts=['bin/certbot-adc-manual-auth-hook'],
+    scripts=[
+        'bin/certbot-adc-check-conf',
+        'bin/certbot-adc-manual-auth-hook'
+    ],
     zip_safe=False
 )
