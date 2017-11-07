@@ -8,7 +8,11 @@ from aliyunsdkalidns.request.v20150109 import \
     AddDomainRecordRequest, \
     UpdateDomainRecordRequest, \
     DescribeDomainRecordsRequest, \
-    DescribeDomainRecordInfoRequest
+    DescribeDomainRecordInfoRequest, \
+    DescribeDomainsRequest, \
+    DescribeDomainInfoRequest
+
+from aliyunsdkcore.acs_exception.exceptions import ServerException
 
 logger = logging.getLogger("certbot_adc.CadcProviderAliyun")
 
@@ -18,6 +22,54 @@ class CadcProviderAliyun(CadcProviderBase):
 
     def __init__(self, acs_client):
         self.acs_client = acs_client
+
+    def get_owned_domain_info(self, main_domain):
+
+        req = DescribeDomainInfoRequest.DescribeDomainInfoRequest()
+        req.set_DomainName(main_domain)
+
+        try:
+            resp_str = self.acs_client.do_action_with_exception(req)
+            logger.debug("owns_domain:" + resp_str)
+            resp_dict = json.loads(resp_str)
+            return resp_dict
+        except ServerException as e:
+            logger.debug("owns_domain: not owns domain '" + main_domain + "'" + str(e))
+
+        return None
+
+    def owns_domain(self, full_domain):
+
+        # check root matches
+        # aaa.test.kingsilk.net.cn
+        #                -> net.cn
+        #       -> kingsilk.net.cn
+        #  -> test.kingsilk.net.cn
+
+        i = full_domain.rfind(".")
+        if i == -1:
+            return None
+
+        i = full_domain.rfind(".", 0, i)
+
+        # full_domain is like "kingsilk.xyz"
+        if i == -1:
+            domain_info_dict = self.get_owned_domain_info(full_domain)
+
+            if domain_info_dict and domain_info_dict.get("DomainId"):
+                return ("", full_domain)
+
+        while i >= 0:
+            r = full_domain[i:]
+
+            domain_info_dict = self.get_owned_domain_info(r)
+
+            if domain_info_dict and domain_info_dict.get("DomainId"):
+                return (full_domain.rstrip(r).rstrip("."), r)
+
+            i = full_domain.find(".", 0, i)
+
+        return None
 
     def get_txt_record(self, record_id):
 
@@ -94,15 +146,21 @@ class CadcProviderAliyun(CadcProviderBase):
 
     def update_dns01(self, domain, token):
 
-        # domain = 'subdomain.domain.ext'
-        d1, d0 = domain.split('.')[-2:]
+        # domain =            'kingsilk.com'
+        # domain =     'test12.kingsilk.xyz'
+        # domain = 'aaa.test12.kingsilk.xyz'
+        d = self.owns_domain(domain)
 
-        main_domain = d1 + "." + d0
-        sub_domain = domain.replace(main_domain, "")
+        assert d, "Not owned domain '" + domain + "'"
+        sub_domain, main_domain = d
+
         if sub_domain:
             sub_domain = sub_domain.rstrip(".")
 
-        sub_domain = "_acme-challenge." + sub_domain
+        if sub_domain:
+            sub_domain = "_acme-challenge." + sub_domain
+        else:
+            sub_domain = "_acme-challenge"
 
         record_id = self.find_target_txt_record(main_domain, sub_domain)
 

@@ -180,3 +180,6 @@ docker exec my-certbot-adc certbot \
     - GoDaddy
         - [API](https://developer.godaddy.com/doc)
     
+- deploy-hook
+    - aliyun CDN
+        - [SetDomainServerCertificate - 设置证书](https://help.aliyun.com/document_detail/45014.html)
