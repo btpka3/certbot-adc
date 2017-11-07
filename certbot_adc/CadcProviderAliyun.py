@@ -9,7 +9,7 @@ from aliyunsdkalidns.request.v20150109 import \
     UpdateDomainRecordRequest, \
     DescribeDomainRecordsRequest, \
     DescribeDomainRecordInfoRequest, \
-    DescribeDomainsRequest, \
+    DeleteDomainRecordRequest, \
     DescribeDomainInfoRequest
 
 from aliyunsdkcore.acs_exception.exceptions import ServerException
@@ -102,6 +102,18 @@ class CadcProviderAliyun(CadcProviderBase):
         else:
             return None
 
+    def delete_txt_record(self, record_id):
+
+        req = DeleteDomainRecordRequest.DeleteDomainRecordRequest()
+        req.set_RecordId(record_id)
+
+        try:
+            resp_str = self.acs_client.do_action_with_exception(req)
+            logger.debug("delete_txt_record:" + resp_str)
+        except ServerException as e:
+            logger.warning("delete_txt_record: could not delete DNS TXT record " + str(e))
+            pass
+
     def add_txt_record(self, domain, rr, value):
 
         req = AddDomainRecordRequest.AddDomainRecordRequest()
@@ -175,3 +187,22 @@ class CadcProviderAliyun(CadcProviderBase):
         else:
             self.add_txt_record(main_domain, sub_domain, token)
             logger.info("DNS TXT record added.")
+
+    def clean_dns01(self, domain):
+        d = self.owns_domain(domain)
+
+        assert d, "Not owned domain '" + domain + "'"
+        sub_domain, main_domain = d
+
+        if sub_domain:
+            sub_domain = sub_domain.rstrip(".")
+
+        if sub_domain:
+            sub_domain = "_acme-challenge." + sub_domain
+        else:
+            sub_domain = "_acme-challenge"
+
+        record_id = self.find_target_txt_record(main_domain, sub_domain)
+
+        if record_id:
+            self.delete_txt_record(record_id)

@@ -20,7 +20,8 @@ setup(
     ],
     scripts=[
         'bin/certbot-adc-check-conf',
-        'bin/certbot-adc-manual-auth-hook'
+        'bin/certbot-adc-manual-auth-hook',
+        'bin/certbot-adc-manual-cleanup-hook',
     ],
     zip_safe=False
 )

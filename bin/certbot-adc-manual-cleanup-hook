@@ -12,15 +12,10 @@ logging.basicConfig(
     stream=sys.stdout,
     level=logging.DEBUG
 )
-logger = logging.getLogger("certbot_adc.certbot-adc-manual-auth-hook")
+logger = logging.getLogger("certbot_adc.certbot-adc-manual-cleanup-hook")
 
 domain = os.environ.get('CERTBOT_DOMAIN')
 assert domain, "Environment variable 'CERTBOT_DOMAIN' is not set."
 
-token = os.environ.get('CERTBOT_VALIDATION')
-assert token, "Environment variable 'CERTBOT_VALIDATION' is not set."
-logger.info("Setup DNS challenge for '" + domain + "' with token '" + token + "'")
-
 fac = CadcProviders.CadcProviders()
-fac.update_dns01(domain, token)
-
+fac.clean_dns01(domain)

@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 
-from abc import abstractmethod
 from CadcProviderBase import CadcProviderBase
 from CadcConf import CadcConf
 from CadcProviderAliyun import CadcProviderAliyun
@@ -39,7 +38,6 @@ class CadcProviders(CadcProviderBase):
 
         return None
 
-    @abstractmethod
     def update_dns01(self, domain, token):
         m = self.__find_mapping(domain)
 
@@ -56,4 +54,19 @@ class CadcProviders(CadcProviderBase):
             aliyun_provider = CadcProviderAliyun(acs_client)
             aliyun_provider.update_dns01(domain, token)
 
-        pass
+
+    def clean_dns01(self, domain):
+        m = self.__find_mapping(domain)
+
+        assert m, "'" + domain + "' is not configured."
+
+        p = m.get("provider")
+
+        if p.get("type") == "aliyun":
+            acs_client = AcsClient(
+                p.get("accessKeyId"),
+                p.get("accessKeySecret"),
+                p.get("regionId")
+            )
+            aliyun_provider = CadcProviderAliyun(acs_client)
+            aliyun_provider.clean_dns01(domain)
