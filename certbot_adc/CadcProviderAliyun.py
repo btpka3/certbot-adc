@@ -60,7 +60,7 @@ class CadcProviderAliyun(CadcProviderBase):
                 return ("", full_domain)
 
         while i >= 0:
-            r = full_domain[i:]
+            r = full_domain[i + 1:]
 
             domain_info_dict = self.get_owned_domain_info(r)
 
