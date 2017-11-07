@@ -28,16 +28,14 @@ ACME defined several Identifier Validation Challenges:
 
 ## Supported DNS providers
 
-This tool uses shell hooks to add a TXT DNS record to pass DNS Challenge.
-
 -  [aliyun.com](https://wanwang.aliyun.com/domain/dns/)
 
 
 
 
-# how to use
+# How to use
 
-## setup
+## Setup
 
 ```bash
 # register a domain, can get the API key/secrete for shell hooks.
@@ -88,6 +86,8 @@ docker exec my-certbot-adc certbot \
 
 # get certs (Only once for each domain )
 # For testing, using `--dry-run` option
+# If have lot's of subdomain, please combine them in a cert because of the 'Rate Limits'
+# If combine multiple subdomain, you can use `--cert-name` to use a specified cert file name
 docker exec my-certbot-adc certbot \
     certonly \
     -n \
@@ -95,7 +95,9 @@ docker exec my-certbot-adc certbot \
     --manual-public-ip-logging-ok \
     --manual-auth-hook /usr/local/bin/certbot-adc-manual-auth-hook \
     --preferred-challenges dns \
-    -d test12.kingsilk.xyz
+    -d test01.kingsilk.link \
+    -d test02.kingsilk.link
+
 
 # renew
 # For testing, using `--dry-run` option
@@ -107,7 +109,7 @@ docker exec my-certbot-adc certbot \
 docker stop my-certbot-adc
 ```
 
-### cron renew
+### Cron renew
 
 
 1. create cron shell `certbot-adc-cron.sh`. 
@@ -128,7 +130,7 @@ docker stop my-certbot-adc
     ```
 
 
-## developing
+## Developing
 
 ```bash
 # delete and rebuild locate docker images 
@@ -156,7 +158,7 @@ docker exec my-certbot-adc certbot \
     -n
 ```
 
-# 参考
+# References
 
 - python
     - [python - pem](https://pem.readthedocs.io/en/stable/api.html#pem-objects)
@@ -164,7 +166,7 @@ docker exec my-certbot-adc certbot \
 - Let's Encrypt 
     - [ACME Protocol](https://ietf-wg-acme.github.io/acme/draft-ietf-acme-acme.html)
     - [FAQ: Will Let's Encrypt issue wildcard certificates?](https://certbot.eff.org/faq/#will-let-s-encrypt-issue-wildcard-certificates)
-    - [FAQ: What are the current rate limits?](https://certbot.eff.org/faq/#what-are-the-current-rate-limits)
+    - [Rate Limits](https://letsencrypt.org/docs/rate-limits/)
     - [certbot@docker hub](https://hub.docker.com/r/certbot/certbot/)
     - [certbot hooks](https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
 - DNS providers
