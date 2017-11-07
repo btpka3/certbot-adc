@@ -59,13 +59,16 @@ class CadcProviderAliyun(CadcProviderBase):
             if domain_info_dict and domain_info_dict.get("DomainId"):
                 return ("", full_domain)
 
+        # full_domain is like "test12.kingsilk.xyz"
         while i >= 0:
             r = full_domain[i + 1:]
 
             domain_info_dict = self.get_owned_domain_info(r)
 
             if domain_info_dict and domain_info_dict.get("DomainId"):
-                return (full_domain.rstrip(r).rstrip("."), r)
+                sp_idx = full_domain.rfind(r)
+                sub_domain = full_domain[0:sp_idx - 1]
+                return (sub_domain, r)
 
             i = full_domain.find(".", 0, i)
 
