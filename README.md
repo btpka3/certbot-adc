@@ -51,7 +51,7 @@ cat > /data0/store/soft/certbot/docker/etc/letsencrypt/certbot_adc.yaml <<EOF
 providers:
   - name:             kingsilk
     type:             aliyun
-    accessKeyId:      xxxxxxxdxxxxxxxx
+    accessKeyId:      xxxxxxxxxxxxxxxx
     accessKeySecret:  yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     regionId:         cn-hangzhou
     domains:
@@ -77,26 +77,30 @@ docker \
 docker start my-certbot-adc
 
 # init certbot account (Only once)
-docker exec my-certbot-adc certbot \
-    register \
-    -n \
-    --email admin@kingsilk.net \
-    --eff-email \
-    --agree-tos
+docker exec my-certbot-adc \
+    certbot \
+        register \
+        -n \
+        --email admin@kingsilk.net \
+        --eff-email \
+        --agree-tos
 
 # get certs (Only once for each domain )
 # For testing, using `--dry-run` option
 # If have lot's of subdomain, please combine them in a cert because of the 'Rate Limits'
 # If combine multiple subdomain, you can use `--cert-name` to use a specified cert file name
-docker exec my-certbot-adc certbot \
-    certonly \
-    -n \
-    --manual \
-    --manual-public-ip-logging-ok \
-    --manual-auth-hook /usr/local/bin/certbot-adc-manual-auth-hook \
-    --preferred-challenges dns \
-    -d test01.kingsilk.link \
-    -d test02.kingsilk.link
+docker exec my-certbot-adc \
+    certbot \
+        certonly \
+        -n \
+        --manual \
+        --manual-public-ip-logging-ok \
+        --manual-auth-hook /usr/local/bin/certbot-adc-manual-auth-hook \
+        --manual-cleanup-hook /usr/local/bin/certbot-adc-manual-cleanup-hook \
+        --deploy-hook /tmp/a.sh \
+        --preferred-challenges dns \
+        -d test01.kingsilk.link \
+        -d test02.kingsilk.link
 
 
 # renew
@@ -142,20 +146,23 @@ docker build -t btpka3/certbot-adc .
 
 # same as user's setup step, but using `--dry-run` to test shell hook and renew
 
-docker exec my-certbot-adc certbot \
-    certonly \
-    --dryrun \
-    -n \
-    --manual \
-    --manual-public-ip-logging-ok \
-    --manual-auth-hook /usr/local/bin/certbot-adc-manual-auth-hook \
-    --preferred-challenges dns \
-    -d test12.kingsilk.xyz
+docker exec my-certbot-adc \
+    certbot \
+        certonly \
+        --dryrun \
+        -n \
+        --manual \
+        --manual-public-ip-logging-ok \
+        --manual-auth-hook /usr/local/bin/certbot-adc-manual-auth-hook \
+        --manual-cleanup-hook /usr/local/bin/certbot-adc-manual-cleanup-hook \
+        --preferred-challenges dns \
+        -d test12.kingsilk.xyz
 
-docker exec my-certbot-adc certbot \
-    renew \
-    --dryrun \
-    -n
+docker exec my-certbot-adc \
+    certbot \
+        renew \
+        --dryrun \
+        -n
 ```
 
 # References
@@ -175,6 +182,8 @@ docker exec my-certbot-adc certbot \
         - [Github - aliyun-python-sdk-alidns](https://github.com/aliyun/aliyun-openapi-python-sdk/tree/master/aliyun-python-sdk-alidns)
     - tencent cloud
         - [腾讯-云解析-API](https://cloud.tencent.com/document/api/302/8516)
+        - [Github - qcloudapi-sdk-python](https://github.com/QcloudApi/qcloudapi-sdk-python)
+        - [PyPI - qcloudapi-sdk-python](https://pypi.python.org/pypi/qcloudapi-sdk-python/2.0.9)
     - DNSPod
         - [DNSPod用户API文档](https://www.dnspod.cn/docs/index.html)
     - GoDaddy

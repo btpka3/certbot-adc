@@ -2,6 +2,7 @@
 
 class CadcConf:
     domain_mappings: dict
+    name_mappings : dict
     confFile: str
     confDict: str
 

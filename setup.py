@@ -16,7 +16,8 @@ setup(
         "aliyun-python-sdk-core>=2.0.7",
         "aliyun-python-sdk-alidns>=2.0.7",
         "PyYAML>=3.12",
-        "validate_email>=1.3"
+        "validate_email>=1.3",
+        "qcloudapi-sdk-python>=2.0.9"
     ],
     scripts=[
         'bin/certbot-adc-check-conf',

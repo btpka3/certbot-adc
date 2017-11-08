@@ -18,6 +18,7 @@ class CadcConf:
     }
     """
     domain_mappings = {}
+    name_mappings = {}
     conf_file = None
     conf_dict = None
 
@@ -100,32 +101,39 @@ class CadcConf:
             "`providers` is not configured correctly in yaml file."
 
         names = []
-        for idx, provider in enumerate(providers):
+        for provider_idx, provider in enumerate(providers):
 
             assert provider is not None and type(provider) == dict, \
-                "`providers[" + str(idx) + "]` is not configured correctly in yaml file."
+                "`providers[" + str(provider_idx) + "]` is not configured correctly in yaml file."
 
             name = provider.get("name")
 
             # check certbot_cadc.providers*.name
             assert name and type(name) == str, \
-                "`providers[" + str(idx) + "].name` is not configured correctly in yaml file."
+                "`providers[" + str(provider_idx) + "].name` is not configured correctly in yaml file."
             try:
                 existed_name_idx = names.index(name)
                 names.append(name)
                 assert False, \
-                    "`providers[" + str(idx) + "].name` is same with `providers[" \
+                    "`providers[" + str(provider_idx) + "].name` is same with `providers[" \
                     + str(existed_name_idx) + "].name`."
             except ValueError:
                 pass
 
+            self.name_mappings[name] = {
+                "providerIdx": provider_idx,
+                "provider": provider
+            }
+
             _type = provider.get("type")
             assert _type and type(_type) == str, \
-                "`providers[" + str(idx) + "].type` is not configured correctly in yaml file."
+                "`providers[" + str(provider_idx) + "].type` is not configured correctly in yaml file."
             if _type == 'aliyun':
-                self.__check_provider_aliyun(idx, provider)
+                self.__check_provider_aliyun(provider_idx, provider)
+            elif _type == 'qcloud':
+                pass
             else:
-                raise Exception("`providers[" + str(idx) + "].type` ='" + _type + "', which is not supported.")
+                raise Exception("`providers[" + str(provider_idx) + "].type` ='" + _type + "', which is not supported.")
 
     def check(self):
 
