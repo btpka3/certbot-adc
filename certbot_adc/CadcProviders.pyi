@@ -2,10 +2,11 @@
 
 from certbot_adc import CadcProviderBase, CadcConf
 
+
 class CadcProviders(CadcProviderBase):
     cadc_conf: CadcConf
 
-    def __find_mapping(self, domain: str) -> dict: ...
+    def get_dns_provider(self, domain: str) -> CadcProviderBase: ...
 
     def update_dns01(self, domain: str, token: str) -> None: ...
 

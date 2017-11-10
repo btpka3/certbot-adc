@@ -38,7 +38,7 @@ ACME defined several Identifier Validation Challenges:
 ## Setup
 
 ```bash
-# register a domain, can get the API key/secrete for shell hooks.
+# register a domain, and get the API key/secret for shell hooks.
 
 # prepare enviroment
 mkdir -p /data0/store/soft/certbot/docker
@@ -145,7 +145,6 @@ docker build -t btpka3/certbot-adc .
 
 
 # same as user's setup step, but using `--dry-run` to test shell hook and renew
-
 docker exec my-certbot-adc \
     certbot \
         certonly \

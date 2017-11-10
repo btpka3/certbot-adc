@@ -1,9 +1,12 @@
 # -*- coding: utf8 -*-
 
-from CadcProviderBase import CadcProviderBase
-from CadcConf import CadcConf
-from CadcProviderAliyun import CadcProviderAliyun
 from aliyunsdkcore.client import AcsClient
+from QcloudApi.qcloudapi import QcloudApi
+
+from CadcConf import CadcConf
+from CadcProviderBase import CadcProviderBase
+from CadcProviderAliyun import CadcProviderAliyun
+from CadcProviderQcloud import CadcProviderQcloud
 
 
 class CadcProviders(CadcProviderBase):
@@ -12,61 +15,37 @@ class CadcProviders(CadcProviderBase):
     def __init__(self, cadc_conf_file=None):
         self.cadc_conf = CadcConf(cadc_conf_file)
 
-    def __find_mapping(self, domain):
+    def get_dns_provider(self, domain):
 
-        if not domain:
-            return None
+        dns_provider = self.cadc_conf.find_provider_by_domain(domain)
 
-        # full match ("aaa.test.kingsilk.net.cn" eg.)
-        m = self.cadc_conf.domain_mappings.get(domain)
-        if m:
-            return m
+        assert dns_provider, "'" + domain + "' is not configured."
 
-        # check root matches
-        # aaa.test.kingsilk.net.cn
-        #   -> test.kingsilk.net.cn
-        #        -> kingsilk.net.cn
-        #                 -> net.cn
-        #                     -> cn
-        i = domain.find(".")
-        while i >= 0:
-            r = domain[i + 1:]
-            m = self.cadc_conf.domain_mappings.get(r)
-            if m:
-                return m
-            i = domain.find(".", i + 1)
+        t = dns_provider.get("type")
 
-        return None
+        if t == "aliyun":
+            acs_client = AcsClient(
+                dns_provider.get("keyId"),
+                dns_provider.get("keySecret"),
+                dns_provider.get("region")
+            )
+            return CadcProviderAliyun(acs_client)
+        elif t == "qcloud":
+            api = QcloudApi("cns", {
+                'Region': dns_provider["region"],
+                'secretId': dns_provider["keyId"],
+                'secretKey': dns_provider["keySecret"],
+                'method': 'get'
+            })
+            return CadcProviderQcloud(api)
+
+        else:
+            assert False, "Not supported provider type '" + t + "'"
 
     def update_dns01(self, domain, token):
-        m = self.__find_mapping(domain)
-
-        assert m, "'" + domain + "' is not configured."
-
-        p = m.get("provider")
-
-        if p.get("type") == "aliyun":
-            acs_client = AcsClient(
-                p.get("accessKeyId"),
-                p.get("accessKeySecret"),
-                p.get("regionId")
-            )
-            aliyun_provider = CadcProviderAliyun(acs_client)
-            aliyun_provider.update_dns01(domain, token)
-
+        dns_provider = self.get_dns_provider(domain)
+        dns_provider.update_dns01(domain, token)
 
     def clean_dns01(self, domain):
-        m = self.__find_mapping(domain)
-
-        assert m, "'" + domain + "' is not configured."
-
-        p = m.get("provider")
-
-        if p.get("type") == "aliyun":
-            acs_client = AcsClient(
-                p.get("accessKeyId"),
-                p.get("accessKeySecret"),
-                p.get("regionId")
-            )
-            aliyun_provider = CadcProviderAliyun(acs_client)
-            aliyun_provider.clean_dns01(domain)
+        dns_provider = self.get_dns_provider(domain)
+        dns_provider.clean_dns01(domain)

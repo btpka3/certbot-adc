@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 from abc import abstractmethod
 
 
@@ -12,8 +14,7 @@ class CadcUtils(object):
         :param domain: a domain name . such as 'aaa.test12.kingsilk.com.cn'
         :return:  [(sub_domain,main_domain),(sub_domain,main_domain),...] 
         """
-        if not domain:
-            return []
+        assert domain and type(domain) == str, "argument `domain` is required."
 
         assert type(domain) == str, "Expected argument `domain` is str."
         assert domain.find(".") >= 0, "`domain` doest not contain dot character."

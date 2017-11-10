@@ -5,6 +5,7 @@ import yaml
 from validate_email import validate_email
 import os
 import logging
+from certbot_adc.CadcUtils import CadcUtils
 
 logger = logging.getLogger("certbot_adc.CadcConf")
 
@@ -12,15 +13,11 @@ logger = logging.getLogger("certbot_adc.CadcConf")
 class CadcConf:
     """
     key     : domainName        # str
-    value   : {           
-        providerIdx     : 0,    # int
-        provider        : ?     # dict, == `providers[${providerIdx}]`
-    }
+    value   : ...               # dict, == `providers[?]`
     """
     domain_mappings = {}
     name_mappings = {}
     conf_file = None
-    conf_dict = None
 
     def __init__(self, conf_file=None):
 
@@ -31,7 +28,6 @@ class CadcConf:
         else:
             self.conf_file = self.find_conf_file()
 
-        self.conf_dict = yaml.load(open(self.conf_file, "r").read())
         self.check()
 
     def find_conf_file(self):
@@ -59,100 +55,78 @@ class CadcConf:
         logger.info("Using config file '" + config + "'")
         return config
 
-    def __check_provider_domains(self, provider_idx, provider, domains):
-        for domain_idx, domain in enumerate(domains):
-            assert domain and type(domain) == str, \
-                "`providers[" + str(provider_idx) + "].domains[" + str(
-                    domain_idx) + "]` is not configured correctly in yaml file."
+    def check_provider_aliyun(self, name, provider):
+        key_id = provider.get("keyId")
+        assert key_id and type(key_id) == str, \
+            "`providers '" + name + "' : `keyId` is not configured correctly in yaml file."
 
-            existed_mapping = self.domain_mappings.get(domain)
-            if existed_mapping != None:
-                raise Exception(domain + " is both configured in `providers[" + str(
-                    provider_idx) + "].domains and `providers[" + str(existed_mapping.get('providerIdx')) + "]")
+        key_secret = provider.get("keySecret")
+        assert key_secret and type(key_secret) == str, \
+            "`providers '" + name + "' : `keySecret` is not configured correctly in yaml file."
 
-            else:
-                self.domain_mappings[domain] = {
-                    "providerIdx": provider_idx,
-                    "provider": provider
-                }
-
-    def __check_provider_aliyun(self, provider_idx, provider):
-        access_key_id = provider.get("accessKeyId")
-        assert access_key_id and type(access_key_id) == str, \
-            "`providers[" + str(provider_idx) + "].accessKeyId` is not configured correctly in yaml file."
-
-        access_key_secret = provider.get("accessKeySecret")
-        assert access_key_secret and type(access_key_secret) == str, \
-            "`providers[" + str(provider_idx) + "].accessKeySecret` is not configured correctly in yaml file."
-
-        region_id = provider.get("regionId")
-        assert region_id and type(region_id) == str, \
-            "`providers[" + str(provider_idx) + "].regionId` is not configured correctly in yaml file."
+        region = provider.get("region")
+        assert region and type(region) == str, \
+            "`providers '" + name + "' : `region` is not configured correctly in yaml file."
 
         domains = provider.get("domains")
         assert domains and type(domains) == list, \
-            "`providers[" + str(provider_idx) + "].domains` is not configured correctly in yaml file."
+            "`providers '" + name + "' : `domains` is required as list."
 
-        self.__check_provider_domains(provider_idx, provider, domains)
+        for domain in provider["domains"]:
+            assert domain and type(domain) == str, \
+                "`providers '" + name + "' : `domains` require non empty strings."
 
-    def __check_providers(self, providers):
+    def check_provider_qcloud(self, name, provider):
+        self.check_provider_aliyun(name, provider)
 
-        assert providers is not None and type(providers) == list, \
-            "`providers` is not configured correctly in yaml file."
+    def map_by_domain(self):
+        for name, provider in self.name_mappings.items():
+            for domain in provider["domains"]:
+                assert domain and type(domain) == str, \
+                    "`providers '" + name + "' : `domains` require non empty strings."
 
-        names = []
-        for provider_idx, provider in enumerate(providers):
+                existed_provider = self.domain_mappings.get(domain)
 
-            assert provider is not None and type(provider) == dict, \
-                "`providers[" + str(provider_idx) + "]` is not configured correctly in yaml file."
+                if existed_provider is not None:
+                    assert False, \
+                        "`domain '" + domain + "' is configured both in provider '" \
+                        + existed_provider['name'] + "' and '" + provider['name'] + "'."
 
-            name = provider.get("name")
+                self.domain_mappings[domain] = provider
 
-            # check certbot_cadc.providers*.name
-            assert name and type(name) == str, \
-                "`providers[" + str(provider_idx) + "].name` is not configured correctly in yaml file."
-            try:
-                existed_name_idx = names.index(name)
-                names.append(name)
-                assert False, \
-                    "`providers[" + str(provider_idx) + "].name` is same with `providers[" \
-                    + str(existed_name_idx) + "].name`."
-            except ValueError:
-                pass
+    def find_provider_by_domain(self, domain):
 
-            self.name_mappings[name] = {
-                "providerIdx": provider_idx,
-                "provider": provider
-            }
+        # full match ("aaa.test.kingsilk.net.cn" eg.)
+        l = list(reversed(CadcUtils.split_domain_name(domain)))
 
-            _type = provider.get("type")
-            assert _type and type(_type) == str, \
-                "`providers[" + str(provider_idx) + "].type` is not configured correctly in yaml file."
-            if _type == 'aliyun':
-                self.__check_provider_aliyun(provider_idx, provider)
-            elif _type == 'qcloud':
-                pass
-            else:
-                raise Exception("`providers[" + str(provider_idx) + "].type` ='" + _type + "', which is not supported.")
+        for sub_domain, main_domain in l:
+
+            m = self.domain_mappings.get(main_domain)
+            if m:
+                return m
+
+        return None
 
     def check(self):
+        conf_dict = yaml.load(open(self.conf_file, "r").read())
 
-        # certbot = self.conf_dict.get("certbot")
-        # if certbot:
-        #     assert type(certbot) == str, \
-        #         "`certbot` is not configured correctly in yaml file. Will using default value. "
-        #     assert os.path.isdir(certbot), \
-        #         "'" + certbot + "' is not a valid certbot path."
-        # else:
-        #     self.conf_dict["certbot"] = '/etc/letsencrypt'
-        #
-        # email = self.conf_dict.get("email")
-        # assert email and type(email) == str and validate_email('example@example.com'), \
-        #     "`email` is not configured correctly in yaml file."
-        #
-        # renew_ahead = self.conf_dict.get("renewAhead")
-        # assert renew_ahead != None and type(renew_ahead) == int and renew_ahead > 0, \
-        #     "`renewAhead` is not configured correctly in yaml file."
+        providers = conf_dict.get("providers")
+        assert providers is not None and type(providers) == dict, \
+            "`providers` is not configured correctly in yaml file."
 
-        providers = self.conf_dict.get("providers")
-        self.__check_providers(providers)
+        self.name_mappings = providers
+
+        for name, provider in providers.items():
+
+            _type = provider.get("type")
+            provider["name"] = name
+
+            if _type == 'aliyun':
+                self.check_provider_aliyun(name, provider)
+            elif _type == 'qcloud':
+                self.check_provider_qcloud(name, provider)
+            else:
+                assert False, \
+                    "`providers '" + name + "' : `type` is not supported."
+
+        self.map_by_domain()
