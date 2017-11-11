@@ -16,13 +16,12 @@ class TestCadcProviderQcloud(unittest.TestCase):
     def setUp(self):
         cadc_conf = CadcConf("../.tmp/certbot_adc.yaml")
 
-        m = cadc_conf.name_mappings.get("zhang3")
-        p = m['provider']
+        p = cadc_conf.name_mappings.get("btpka3")
 
         self.api = QcloudApi("cns", {
             'Region': p["region"],
-            'secretId': p["secretId"],
-            'secretKey': p["secretKey"],
+            'secretId': p["keyId"],
+            'secretKey': p["keySecret"],
             'method': 'get'
         })
         self.q = CadcProviderQcloud(self.api)
@@ -97,6 +96,9 @@ class TestCadcProviderQcloud(unittest.TestCase):
         result = self.q.owns_domain("btpka3.com")
 
         self.assertTrue(result is None)
+
+    def test_update_dns01_1(self):
+        self.q.update_dns01("btpka3.xyz", "8888")
 
 
 if __name__ == '__main__':

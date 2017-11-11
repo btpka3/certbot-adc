@@ -178,5 +178,5 @@ class CadcProviderQcloud(CadcProviderBase):
         rec = self.get_txt_record(main_domain, sub_domain)
 
         if rec:
-            self.delete_txt_record(rec[0])
+            self.delete_txt_record(main_domain, rec[0])
         pass
