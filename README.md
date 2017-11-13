@@ -49,11 +49,11 @@ mkdir -p /data0/store/soft/certbot/docker/var/log/letsencrypt
 # create cerbot-adc config file
 cat > /data0/store/soft/certbot/docker/etc/letsencrypt/certbot_adc.yaml <<EOF
 providers:
-  - name:             kingsilk
+  xxxUniqueConfName:
     type:             aliyun
-    accessKeyId:      xxxxxxxxxxxxxxxx
-    accessKeySecret:  yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-    regionId:         cn-hangzhou
+    keyId:            xxxxxxxxxxxxxxxx
+    keySecret:        yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    region:           cn-hangzhou
     domains:
       - kingsilk.xyz
       - kingsilk.link
